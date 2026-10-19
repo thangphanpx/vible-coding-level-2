@@ -14,3 +14,8 @@ Node.js 24, pnpm workspace. apps/web: TanStack Start + TypeScript + Tailwind. ap
 - Viết kiểm thử tự động cho phần quyền và phần tiền.
 - Commit sau mỗi bước hoàn thành.
 - Trả lời người dùng bằng tiếng Việt dễ hiểu, không biệt ngữ.
+
+## Lệnh và cổng
+- `pnpm install` cài đặt; `pnpm dev` chạy cả web (cổng 3000) và api (cổng 8787); `pnpm typecheck` kiểm kiểu.
+- Web gọi API qua đường dẫn `/api/...` (Vite proxy sang api, bỏ tiền tố `/api`).
+- Api chạy TypeScript trực tiếp bằng Node 24: import nội bộ phải có đuôi `.ts`.
