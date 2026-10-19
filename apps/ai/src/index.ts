@@ -1,6 +1,8 @@
 import { serve } from "@hono/node-server";
 import { openaiCompatibleText } from "@tanstack/ai-openai/compatible";
+import { readFileSync } from "node:fs";
 import { createAiApp } from "./server.ts";
+import { loadSkills } from "./skills.ts";
 
 const port = Number(process.env.AI_PORT ?? 8788);
 const apiUrl = process.env.API_URL ?? "http://127.0.0.1:8787";
@@ -12,6 +14,8 @@ const app = createAiApp({
   apiUrl,
   // Chưa có khóa thì vẫn chạy, chỉ trả 503 khi có người hỏi.
   adapter: () => (apiKey ? openaiCompatibleText(model, { baseURL, apiKey }) : null),
+  agentMd: readFileSync(process.env.AGENT_MD_PATH ?? new URL("../AGENT.md", import.meta.url), "utf8"),
+  skills: loadSkills(process.env.SKILLS_DIR ?? new URL("../skills/", import.meta.url)),
   serviceKey: process.env.AI_SERVICE_KEY || undefined,
   asksPerHour: Number(process.env.ASKS_PER_HOUR ?? 60),
   origins: (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000").split(",").map((s) => s.trim()),

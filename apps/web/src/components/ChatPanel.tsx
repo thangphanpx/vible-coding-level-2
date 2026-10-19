@@ -10,6 +10,12 @@ import { inputClass, primaryButton, secondaryButton } from "./ui";
 const chatOptions = createChatClientOptions({ connection: fetchServerSentEvents("/ai/chat"), tools: approvalTools });
 type ChatMessages = InferChatMessages<typeof chatOptions>;
 
+/** Tên tiếng Việt của công cụ; với load_skill thì nêu rõ kỹ năng nào đang được dùng. */
+function toolLabel(name: string, input: unknown): string {
+  if (name === "load_skill") return `Đang dùng kỹ năng: ${(input as { name?: string } | undefined)?.name ?? "..."}`;
+  return TOOL_LABELS[name] ?? name;
+}
+
 type Shown = { id: string; role: "user" | "assistant"; text: string; tools: string[] };
 
 /** Khung chat nổi ở góc mọi trang. Đang mở hồ sơ một khách thì chat gắn với khách đó (leadId). */
@@ -78,7 +84,7 @@ function Conversation({ leadId, saved, onClose }: { leadId: string | null; saved
     role: m.role === "user" ? "user" : "assistant",
     text: m.parts.map((p) => (p.type === "text" ? p.content : "")).join(""),
     // Các công cụ AI đã dùng ở lượt này, hiện bằng tên tiếng Việt.
-    tools: m.parts.flatMap((p) => (p.type === "tool-call" ? [TOOL_LABELS[p.name] ?? p.name] : [])),
+    tools: m.parts.flatMap((p) => (p.type === "tool-call" ? [toolLabel(p.name, p.input)] : [])),
   }));
 
   function submit(e: FormEvent) {

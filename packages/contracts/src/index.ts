@@ -177,3 +177,11 @@ Object.assign(TOOL_LABELS, {
   enroll_lead: "Xếp khách vào lớp",
   record_payment: "Ghi nhận học phí",
 });
+
+/** Kỹ năng (skills/<tên>/SKILL.md): AI chỉ thấy tên và mô tả; gọi load_skill mới đọc nội dung đầy đủ. */
+export const loadSkillDef = toolDefinition({
+  name: "load_skill",
+  description: "Đọc nội dung đầy đủ của một kỹ năng (quy trình làm việc) khi việc người dùng nhờ khớp với mô tả của kỹ năng đó. Sau khi đọc, làm theo các bước trong kỹ năng.",
+  inputSchema: z.object({ name: z.string().min(1).describe("Tên kỹ năng, đúng như trong danh sách kỹ năng có sẵn") }),
+});
+TOOL_LABELS.load_skill = "Nạp kỹ năng";

@@ -1,8 +1,10 @@
 import {
-  addNoteDef, createLeadDef, createTaskDef, enrollLeadDef, recordPaymentDef, updateLeadDef, updateLeadStageDef,
+  loadSkillDef, addNoteDef, createLeadDef, createTaskDef, enrollLeadDef, recordPaymentDef, updateLeadDef, updateLeadStageDef,
   getClassDef, getLeadDef, listClassesDef, listCoursesDef, listStaleLeadsDef, listTasksDef, searchDocsDef, searchLeadsDef,
 } from "@ces/contracts";
 import type { Activity, ClassDetail, ClassSummary, Course, Doc, DocHit, Enrollment, Lead, Page, Task } from "@ces/shared";
+
+import type { Skill } from "./skills.ts";
 
 export type ToolDeps = {
   apiUrl: string;
@@ -177,6 +179,17 @@ export function createWriteTools(deps: ToolDeps) {
         return { ok: true, message: `Đã ghi nhận. ${e.leadName} đã đóng ${e.paidVnd.toLocaleString("vi-VN")}đ / ${e.totalTuitionVnd.toLocaleString("vi-VN")}đ.` };
       }),
     ),
+  ];
+}
+
+/** Công cụ nạp kỹ năng: trả nội dung SKILL.md khi AI chọn dùng. Kỹ năng không cấp thêm quyền; mọi công cụ khác vẫn kiểm quyền như cũ. */
+export function createSkillTool(skills: Skill[]) {
+  return [
+    loadSkillDef.server(async ({ name }) => {
+      const s = skills.find((x) => x.name === name);
+      if (!s) return { found: false, message: `Không có kỹ năng "${name}". Các kỹ năng hiện có: ${skills.map((x) => x.name).join(", ") || "(chưa có)"}.` };
+      return { found: true, name: s.name, huong_dan: s.body };
+    }),
   ];
 }
 

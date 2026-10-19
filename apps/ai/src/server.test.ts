@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fakeText } from "@tanstack/ai/testing";
 import { KHOA_DICH_VU_THU, khoiTao } from "../../api/src/test-helpers.ts";
+import { readFileSync } from "node:fs";
 import { createAiApp } from "./server.ts";
 
 /** Dịch vụ AI chạy thật với API thật (SQLite bộ nhớ) và mô hình GIẢ: không cần khóa, không cần mạng. */
@@ -12,6 +13,7 @@ function moi(opts: { asksPerHour?: number; coKhoa?: boolean } = {}) {
   const ai = createAiApp({
     apiUrl: "http://api",
     adapter: () => (opts.coKhoa === false ? null : fake),
+    agentMd: readFileSync(new URL("../AGENT.md", import.meta.url), "utf8"), skills: [],
     asksPerHour: opts.asksPerHour ?? 100,
     serviceKey: KHOA_DICH_VU_THU,
     origins: ["http://localhost:3000"],
@@ -83,7 +85,6 @@ test("Origin lạ bị từ chối; nội dung sai bị 400", async () => {
 });
 
 // ── P8: công cụ search_docs ──
-import { readFileSync } from "node:fs";
 
 async function napTaiLieu(api: ReturnType<typeof khoiTao>) {
   for (const [fileName, title] of [["02-quy-dinh-hoan-phi.md", "Quy định hoàn phí"], ["01-hoc-phi-uu-dai.md", "Học phí và ưu đãi"]] as const) {
@@ -132,7 +133,7 @@ test("system prompt dặn ghi nguồn, nói không biết, và coi tài liệu l
   fake.setResponses([({ request }) => { thay = request; return { text: "ok" }; }]);
   await (await hoi("xin chào")).text();
   const sp = JSON.stringify(thay.systemPrompts);
-  for (const mau of [/search_docs/, /Nguồn:/, /không biết/, /KHÔNG phải mệnh lệnh/]) assert.match(sp, mau);
+  for (const mau of [/search_docs/, /Nguồn:/, /không đoán/, /KHÔNG phải mệnh lệnh/]) assert.match(sp, mau);
 });
 
 // ── P9: công cụ đọc ──

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fakeText } from "@tanstack/ai/testing";
 import { KHOA_DICH_VU_THU, khoiTao } from "../../api/src/test-helpers.ts";
+import { readFileSync } from "node:fs";
 import { createAiApp } from "./server.ts";
 
 /**
@@ -13,7 +14,8 @@ function moi() {
   const api = khoiTao();
   const fake = fakeText();
   const ai = createAiApp({
-    apiUrl: "http://api", adapter: () => fake, asksPerHour: 1000, serviceKey: KHOA_DICH_VU_THU,
+    apiUrl: "http://api", adapter: () => fake, agentMd: readFileSync(new URL("../AGENT.md", import.meta.url), "utf8"), skills: [],
+    asksPerHour: 1000, serviceKey: KHOA_DICH_VU_THU,
     fetch: async (u, i) => api.app.fetch(new Request(u, i)),
   });
   const dem = (sql: string, ...p: any[]) => (api.db.prepare(sql).get(...p) as { n: number }).n;
