@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   full_name   TEXT NOT NULL,
   role        TEXT NOT NULL CHECK (role IN ('admin', 'quan_ly_tuyen_sinh', 'tu_van_vien', 'quan_ly_lop_hoc')),
   active      INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+  password_hash TEXT, -- bản băm scrypt, KHÔNG BAO GIỜ lưu mật khẩu thô; NULL = chưa có mật khẩu (không đăng nhập được)
   created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -159,6 +160,26 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages (user_id, created_at);
 
+-- 13. Phiên đăng nhập (cookie giữ mã ngẫu nhiên; DB chỉ lưu HMAC của mã đó)
+CREATE TABLE IF NOT EXISTS sessions (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))) CHECK (length(id) = 36),
+  user_id     TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  token_hash  TEXT NOT NULL UNIQUE,
+  expires_at  TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
+
+-- 14. Lần đăng nhập sai (để giới hạn 10 lần / 15 phút theo email)
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))) CHECK (length(id) = 36),
+  email       TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts (email, created_at);
+
 -- Trigger: tự cập nhật updated_at khi sửa dòng mà không tự đặt updated_at.
 CREATE TRIGGER IF NOT EXISTS trg_users_updated_at AFTER UPDATE ON users
 FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
@@ -219,4 +240,14 @@ CREATE TRIGGER IF NOT EXISTS trg_chat_messages_updated_at AFTER UPDATE ON chat_m
 FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
 BEGIN
   UPDATE chat_messages SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_sessions_updated_at AFTER UPDATE ON sessions
+FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+BEGIN
+  UPDATE sessions SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_login_attempts_updated_at AFTER UPDATE ON login_attempts
+FOR EACH ROW WHEN NEW.updated_at = OLD.updated_at
+BEGIN
+  UPDATE login_attempts SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id;
 END;

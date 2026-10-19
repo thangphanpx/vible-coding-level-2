@@ -1,24 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Lead, Lookups, Page, Task } from "@ces/shared";
-import { createApp } from "../app.ts";
-import { openDatabase } from "../db/database.ts";
-import { seed, uuidFrom } from "../db/seed.ts";
-
-function khoiTao() {
-  const db = openDatabase(":memory:");
-  seed(db);
-  const app = createApp(db);
-  async function goi<T = any>(method: string, path: string, body?: unknown): Promise<{ status: number; data: T }> {
-    const res = await app.request(path, {
-      method,
-      headers: body === undefined ? undefined : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    return { status: res.status, data: (await res.json()) as T };
-  }
-  return { db, app, goi };
-}
+import { uuidFrom } from "../db/seed.ts";
+import { khoiTao } from "../test-helpers.ts";
 
 const tv1 = uuidFrom("user:tv1");
 const tv2 = uuidFrom("user:tv2");
@@ -135,8 +119,8 @@ test("thêm khách sai dữ liệu: 400, mỗi trường một thông báo tiế
   assert.equal(hong, 400);
 
   async function app_postRaw() {
-    const { app } = khoiTao();
-    const res = await app.request("/leads", { method: "POST", body: "{không phải json", headers: { "content-type": "application/json" } });
+    const { app, cookieCho } = khoiTao();
+    const res = await app.request("/leads", { method: "POST", body: "{không phải json", headers: { "content-type": "application/json", cookie: cookieCho("admin") } });
     return res.status;
   }
 });

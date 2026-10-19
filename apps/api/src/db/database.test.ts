@@ -6,7 +6,7 @@ import { demBang, seed, uuidFrom } from "./seed.ts";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const BANG = [
   "users", "courses", "course_intakes", "leads", "activities", "tasks",
-  "classes", "enrollments", "documents", "document_chunks", "audit_logs", "chat_messages",
+  "classes", "enrollments", "documents", "document_chunks", "audit_logs", "chat_messages", "sessions", "login_attempts",
 ];
 
 function taoDb() {

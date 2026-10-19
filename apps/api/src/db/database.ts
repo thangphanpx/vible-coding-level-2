@@ -15,9 +15,16 @@ export function getDbPath(): string {
   return path;
 }
 
-/** Áp dụng schema.sql (chạy lại nhiều lần không sao). */
+/** Thêm cột vào bảng đã có từ buổi trước (CREATE TABLE IF NOT EXISTS không tự sửa bảng cũ). */
+function ensureColumn(db: DatabaseSync, table: string, column: string, definition: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+/** Áp dụng schema.sql (chạy lại nhiều lần không sao) và bổ sung cột mới cho DB cũ. */
 export function migrate(db: DatabaseSync): void {
   db.exec(readFileSync(schemaPath, "utf8"));
+  ensureColumn(db, "users", "password_hash", "TEXT");
 }
 
 /** Mở DB, bật khóa ngoại, áp dụng schema. Truyền ":memory:" để dùng DB tạm (kiểm thử). */

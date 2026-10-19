@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { rmSync } from "node:fs";
 import { resolve } from "node:path";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
+import { hashPasswordSync } from "../services/passwords.ts";
 import { getDbPath, openDatabase } from "./database.ts";
 
 type Row = Record<string, SQLInputValue>;
@@ -157,15 +158,27 @@ const GHI_CHU_MAU: Record<Giai, [string, string][]> = {
   ],
 };
 
-function nap(db: DatabaseSync): Record<string, number> {
+/** Bản băm đã tính trong lần chạy này (băm scrypt hơi chậm; kiểm thử gọi seed nhiều lần). */
+const daBam = new Map<string, string>();
+function bamMatKhau(khoa: string, matKhau: string): string {
+  const key = `${khoa}:${matKhau}`;
+  let h = daBam.get(key);
+  if (!h) daBam.set(key, (h = hashPasswordSync(matKhau)));
+  return h;
+}
+
+function nap(db: DatabaseSync, matKhau: string | undefined): Record<string, number> {
   const idNguoi = (k: string) => uuidFrom(`user:${k}`);
   const idKhoa = (k: string) => uuidFrom(`course:${k}`);
   const idLich = (k: string) => uuidFrom(`intake:${k}`);
   const idLop = (k: string) => uuidFrom(`class:${k}`);
   const idKhach = (i: number) => uuidFrom(`lead:${KHACH[i][1]}`);
 
+  // Mỗi người dùng mẫu có tài khoản: mật khẩu chung lấy từ SEED_PASSWORD (chỉ lưu bản băm, mỗi người một muối riêng).
+  // Không truyền mật khẩu thì giữ nguyên mật khẩu đang có trong DB.
   upsert(db, "users", NGUOI_DUNG.map(([k, email, full_name, role]) => ({
     id: idNguoi(k), email, full_name, role, active: 1, created_at: ngayTruoc(120),
+    ...(matKhau ? { password_hash: bamMatKhau(k, matKhau) } : {}),
   })));
 
   upsert(db, "courses", KHOA_HOC.map(([k, name, tuition_vnd, sessions, description]) => ({
@@ -270,17 +283,17 @@ function nap(db: DatabaseSync): Record<string, number> {
 }
 
 export function demBang(db: DatabaseSync): Record<string, number> {
-  const bang = ["users", "courses", "course_intakes", "leads", "activities", "tasks", "classes", "enrollments", "documents", "document_chunks", "audit_logs", "chat_messages"];
+  const bang = ["users", "courses", "course_intakes", "leads", "activities", "tasks", "classes", "enrollments", "documents", "document_chunks", "audit_logs", "chat_messages", "sessions", "login_attempts"];
   return Object.fromEntries(
     bang.map((b) => [b, (db.prepare(`SELECT count(*) AS n FROM ${b}`).get() as { n: number }).n]),
   );
 }
 
 /** Nạp dữ liệu mẫu trong một giao dịch; chạy lại nhiều lần không bị trùng. */
-export function seed(db: DatabaseSync): Record<string, number> {
+export function seed(db: DatabaseSync, options: { password?: string } = {}): Record<string, number> {
   db.exec("BEGIN");
   try {
-    const ket = nap(db);
+    const ket = nap(db, options.password);
     db.exec("COMMIT");
     return ket;
   } catch (e) {
@@ -296,8 +309,12 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
     for (const f of [p, `${p}-wal`, `${p}-shm`]) rmSync(f, { force: true });
     console.log("Đã xóa file DB cũ.");
   }
+  const matKhau = process.env.SEED_PASSWORD;
+  if (!matKhau) {
+    throw new Error("Thiếu biến SEED_PASSWORD (mật khẩu chung của tài khoản mẫu). Hãy đặt trong apps/api/.env (xem .env.example).");
+  }
   const db = openDatabase();
-  const ket = seed(db);
+  const ket = seed(db, { password: matKhau });
   console.log(`Đã nạp dữ liệu mẫu vào ${getDbPath()}:`);
   for (const [b, n] of Object.entries(ket)) console.log(`  ${b}: ${n} dòng`);
   db.close();

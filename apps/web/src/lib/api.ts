@@ -12,6 +12,9 @@ export class ApiRequestError extends Error {
   }
 }
 
+/** Sự kiện báo "phiên đăng nhập không còn hiệu lực" (API trả 401 ở một thao tác không phải đăng nhập). */
+export const UNAUTHORIZED_EVENT = "ces:unauthorized";
+
 /** Gọi API qua đường dẫn /api (Vite chuyển sang API, bỏ tiền tố /api). Chỉ gọi ở trình duyệt. */
 export async function api<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   let res: Response;
@@ -27,6 +30,7 @@ export async function api<T>(method: string, path: string, body?: unknown, signa
     throw new ApiRequestError(0, "Không kết nối được máy chủ. Vui lòng thử lại.");
   }
   const data = (await res.json().catch(() => null)) as (T & Partial<ApiError>) | null;
+  if (res.status === 401 && !path.startsWith("/auth/")) window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
   if (!res.ok) throw new ApiRequestError(res.status, data?.error ?? "Có lỗi xảy ra, vui lòng thử lại", data?.fields);
   return data as T;
 }

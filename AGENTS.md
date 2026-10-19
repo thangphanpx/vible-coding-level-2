@@ -26,3 +26,10 @@ Node.js 24, pnpm workspace. apps/web: TanStack Start + TypeScript + Tailwind. ap
 - `apps/api/src/services/`: logic nghiệp vụ và câu SQL; `apps/api/src/routes/`: chỉ đọc yêu cầu, kiểm Zod, gọi service; `apps/api/src/db/`: schema.sql, seed.ts, database.ts.
 - Lỗi API trả JSON tiếng Việt: `{ error, fields? }` (400 sai dữ liệu, 404 không thấy, 409 trùng).
 - Danh sách phân trang 20 dòng; bộ lọc nằm trên địa chỉ trang (search params).
+
+## Đăng nhập và bí mật (P5)
+- Đăng nhập bằng email + mật khẩu ở API (`/auth/login`, `/auth/logout`, `/auth/me`). Mật khẩu chỉ lưu bản băm scrypt; phiên lưu bảng `sessions` (DB chỉ giữ HMAC của mã), gửi bằng cookie `ces_session` (HttpOnly, SameSite=Lax). Sai quá 10 lần / 15 phút thì khóa (429). Request ghi có Origin lạ bị 403.
+- Mọi route dữ liệu cần đăng nhập (chưa đăng nhập: 401). Web kiểm bằng `GET /api/auth/me` và chuyển về `/login`.
+- Bí mật chỉ nằm trong `apps/api/.env` (không commit): `SESSION_SECRET` (>= 32 ký tự, thiếu thì API không chạy), `ALLOWED_ORIGINS`, `COOKIE_SECURE`, `SEED_PASSWORD` (mật khẩu chung của tài khoản mẫu). `.env.example` chỉ có giá trị giữ chỗ.
+- `pnpm db:seed` cần `SEED_PASSWORD`. Cột/bảng mới cho DB cũ: `migrate()` tự thêm cột thiếu (xem `ensureColumn` trong `db/database.ts`).
+- Kiểm thử: dùng `khoiTao()` trong `apps/api/src/test-helpers.ts` (DB tạm, đồng hồ giả, `goi(method, path, body, vaiTro)`).
