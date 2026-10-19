@@ -10,6 +10,8 @@
   "dependencies": {
     "@ces/shared": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/ai": "^0.69.0",
+    "@tanstack/ai-react": "^0.30.4",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
     "react": "^19.3.1",

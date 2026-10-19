@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { DatabaseSync } from "node:sqlite";
 import type { AppConfig } from "./config.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { chatRoutes } from "./routes/chats.ts";
 import { classRoutes, courseRoutes, enrollmentRoutes } from "./routes/classes.ts";
 import { originGuard, requireUser, type AuthEnv } from "./routes/guard.ts";
 import { handleError } from "./routes/http.ts";
@@ -28,6 +29,7 @@ export function createApp(db: DatabaseSync, config: AppConfig) {
   secured.route("/leads", leadRoutes(db));
   secured.route("/tasks", taskRoutes(db));
   secured.route("/lookups", lookupRoutes(db));
+  secured.route("/chats", chatRoutes(db));
   secured.route("/courses", courseRoutes(db));
   secured.route("/classes", classRoutes(db));
   secured.route("/enrollments", enrollmentRoutes(db));

@@ -4,6 +4,7 @@ import { HeadContent, Link, Outlet, Scripts, createRootRoute, useNavigate, useRo
 import { ROLE_LABELS, canViewPage } from "@ces/shared";
 import appCss from "../styles.css?url";
 import { AuthProvider, useAuth } from "../lib/auth";
+import { ChatPanel } from "../components/ChatPanel";
 import { menu } from "../menu";
 
 export const Route = createRootRoute({
@@ -32,6 +33,11 @@ function RootComponent() {
       </body>
     </html>
   );
+}
+
+/** Địa chỉ dạng /khach/<id> thì trả về id khách đang mở, nếu không thì null. */
+function leadIdFromPath(pathname: string): string | null {
+  return /^\/khach\/([0-9a-f-]{36})$/.exec(pathname)?.[1] ?? null;
 }
 
 /** Khung chung: chưa đăng nhập thì chuyển về /login; đã đăng nhập thì có menu bên trái. */
@@ -95,6 +101,7 @@ function Shell() {
           </div>
         )}
       </main>
+      <ChatPanel leadId={leadIdFromPath(pathname)} />
     </div>
   );
 }
