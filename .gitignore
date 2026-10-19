@@ -9,3 +9,8 @@ dist
 *.log
 *.sqlite
 *.db
+
+# dữ liệu SQLite cục bộ
+data/
+*.sqlite-wal
+*.sqlite-shm

@@ -2,10 +2,15 @@
   "name": "ces-crm-ai",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "typecheck": "pnpm -r typecheck",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "test": "pnpm -r --if-present test",
+    "db:seed": "pnpm --filter @ces/api db:seed",
+    "db:reset": "pnpm --filter @ces/api db:reset"
   }
 }
