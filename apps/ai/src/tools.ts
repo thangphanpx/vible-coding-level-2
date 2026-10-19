@@ -1,20 +1,27 @@
 import {
+  addNoteDef, createLeadDef, createTaskDef, enrollLeadDef, recordPaymentDef, updateLeadDef, updateLeadStageDef,
   getClassDef, getLeadDef, listClassesDef, listCoursesDef, listStaleLeadsDef, listTasksDef, searchDocsDef, searchLeadsDef,
 } from "@ces/contracts";
-import type { Activity, ClassDetail, ClassSummary, Course, Doc, DocHit, Lead, Page, Task } from "@ces/shared";
+import type { Activity, ClassDetail, ClassSummary, Course, Doc, DocHit, Enrollment, Lead, Page, Task } from "@ces/shared";
 
 export type ToolDeps = {
   apiUrl: string;
   /** Cookie đăng nhập của NGƯỜI ĐANG HỎI: mọi công cụ gọi API bằng đúng cookie này, nên chỉ làm được việc người đó làm được. */
   cookie: string;
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
+  /** Mã người đang hỏi (để tạo việc cho chính họ). */
+  userId: string;
+  /** Khóa dịch vụ: gửi kèm để API gắn nhãn "do AI làm" vào nhật ký. KHÔNG cấp thêm quyền. */
+  serviceKey?: string;
+  /** Chạy một việc GHI đúng một lần cho mỗi lệnh gọi công cụ: bấm Duyệt hai lần cũng không tạo trùng. */
+  once: <T>(key: string, run: () => Promise<T>) => Promise<T>;
 };
 
 /** Gọi API thay mặt người dùng. Lỗi thì ném thông báo ngắn để mô hình đọc được và nói lại cho người dùng. */
 export async function callApi<T>(deps: ToolDeps, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const res = await deps.fetch(`${deps.apiUrl}${path}`, {
     method: init.method ?? "GET",
-    headers: { cookie: deps.cookie, ...(init.body !== undefined ? { "content-type": "application/json" } : {}) },
+    headers: { cookie: deps.cookie, ...(deps.serviceKey ? { "x-ai-service-key": deps.serviceKey } : {}), ...(init.body !== undefined ? { "content-type": "application/json" } : {}) },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
   if (!res.ok) {
@@ -102,6 +109,74 @@ export function createReadTools(deps: ToolDeps) {
       if (hits.length === 0) return { found: false, message: "Không có đoạn tài liệu nào phù hợp." };
       return { found: true, hits: hits.map((h) => ({ source: h.source, heading: h.heading, text: h.content })) };
     }),
+  ];
+}
+
+/** Chạy lệnh ghi đúng một lần theo mã lệnh gọi công cụ. */
+const guarded = <T>(deps: ToolDeps, context: { toolCallId?: string } | undefined, run: () => Promise<T>) =>
+  context?.toolCallId ? deps.once(`${deps.userId}:${context.toolCallId}`, run) : run();
+
+/**
+ * Phần chạy của các công cụ GHI. Công cụ cần duyệt chỉ chạy SAU KHI người dùng bấm Duyệt (thư viện dừng lại chờ).
+ * Mỗi công cụ gọi đúng một route của API bằng cookie người dùng: API vẫn kiểm quyền và ghi nhật ký.
+ */
+export function createWriteTools(deps: ToolDeps) {
+  return [
+    addNoteDef.server(async ({ lead_id, content }, ctx) =>
+      guarded(deps, ctx, async () => {
+        await callApi<Activity>(deps, `/leads/${lead_id}/activities`, { method: "POST", body: { type: "ghi_chu", content } });
+        return { ok: true, message: "Đã thêm ghi chú (gắn nhãn do AI ghi)." };
+      }),
+    ),
+
+    createTaskDef.server(async ({ title, due_date, type, lead_id }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const t = await callApi<Task>(deps, "/tasks", { method: "POST", body: { title, dueDate: due_date, type, leadId: lead_id ?? null, assigneeId: deps.userId } });
+        return { ok: true, task_id: t.id, message: `Đã tạo việc "${t.title}" hạn ${t.dueDate}.` };
+      }),
+    ),
+
+    updateLeadStageDef.server(async ({ lead_id, stage }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const l = await callApi<Lead>(deps, `/leads/${lead_id}`, { method: "PATCH", body: { stage } });
+        return { ok: true, message: `Đã đổi giai đoạn của ${l.fullName} sang ${l.stage}.` };
+      }),
+    ),
+
+    createLeadDef.server(async ({ full_name, phone, source, interested_course_id, free_time }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const l = await callApi<Lead>(deps, "/leads", {
+          method: "POST",
+          body: { fullName: full_name, phone, source, interestedCourseId: interested_course_id ?? null, stage: "moi", ownerId: null, freeTime: free_time ?? null },
+        });
+        return { ok: true, lead_id: l.id, message: `Đã thêm khách ${l.fullName}.` };
+      }),
+    ),
+
+    updateLeadDef.server(async ({ lead_id, full_name, phone, source, interested_course_id, free_time }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const body = { fullName: full_name, phone, source, interestedCourseId: interested_course_id, freeTime: free_time };
+        const l = await callApi<Lead>(deps, `/leads/${lead_id}`, { method: "PATCH", body: Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined)) });
+        return { ok: true, message: `Đã cập nhật thông tin của ${l.fullName}.` };
+      }),
+    ),
+
+    enrollLeadDef.server(async ({ lead_id, class_id, payment_plan, second_due_date }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const e = await callApi<Enrollment>(deps, "/enrollments", {
+          method: "POST",
+          body: { leadId: lead_id, classId: class_id, paymentPlan: payment_plan, secondDueDate: second_due_date ?? null },
+        });
+        return { ok: true, enrollment_id: e.id, message: `Đã xếp ${e.leadName} vào lớp, học phí ${e.totalTuitionVnd.toLocaleString("vi-VN")}đ.` };
+      }),
+    ),
+
+    recordPaymentDef.server(async ({ enrollment_id, amount_vnd }, ctx) =>
+      guarded(deps, ctx, async () => {
+        const e = await callApi<Enrollment>(deps, `/enrollments/${enrollment_id}/payments`, { method: "POST", body: { amountVnd: amount_vnd } });
+        return { ok: true, message: `Đã ghi nhận. ${e.leadName} đã đóng ${e.paidVnd.toLocaleString("vi-VN")}đ / ${e.totalTuitionVnd.toLocaleString("vi-VN")}đ.` };
+      }),
+    ),
   ];
 }
 

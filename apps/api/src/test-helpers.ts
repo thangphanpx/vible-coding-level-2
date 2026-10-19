@@ -7,6 +7,8 @@ import { createSession } from "./services/auth.ts";
 
 /** Mật khẩu chỉ dùng trong kiểm thử (không phải mật khẩu thật). */
 export const MAT_KHAU_THU = "Mat-khau-thu-nghiem-123";
+/** Khóa dịch vụ AI chỉ dùng trong kiểm thử. */
+export const KHOA_DICH_VU_THU = "khoa-dich-vu-thu-nghiem-0123";
 export const ORIGIN_THU = "http://localhost:3000";
 
 /** Người dùng mẫu theo mã trong seed: admin, ts, tv1..tv6, ql1, ql2. */
@@ -32,6 +34,7 @@ export function khoiTao(opts: { matKhau?: string; allowedOrigins?: string[] } = 
     allowedOrigins: opts.allowedOrigins ?? [ORIGIN_THU],
     cookieSecure: false,
     sessionDays: 7,
+    aiServiceKey: KHOA_DICH_VU_THU,
     now: () => dongHo.t,
   };
   const app = createApp(db, config);

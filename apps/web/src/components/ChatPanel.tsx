@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
-import { TOOL_LABELS } from "@ces/contracts";
+import { createChatClientOptions, fetchServerSentEvents, useChat, type InferChatMessages } from "@tanstack/ai-react";
+import { TOOL_LABELS, approvalTools } from "@ces/contracts";
 import type { ChatMessage } from "@ces/shared";
 import { api, useFetch } from "../lib/api";
+import { ApprovalCard } from "./ApprovalCard";
 import { inputClass, primaryButton, secondaryButton } from "./ui";
 
-const connection = fetchServerSentEvents("/ai/chat");
+// Khai báo ở mức module để kiểu của tin nhắn và thẻ xác nhận được suy ra từ danh sách công cụ cần duyệt.
+const chatOptions = createChatClientOptions({ connection: fetchServerSentEvents("/ai/chat"), tools: approvalTools });
+type ChatMessages = InferChatMessages<typeof chatOptions>;
 
 type Shown = { id: string; role: "user" | "assistant"; text: string; tools: string[] };
 
@@ -51,9 +54,9 @@ function Shell({ onClose, children, onClear }: { onClose: () => void; children: 
 
 function Conversation({ leadId, saved, onClose }: { leadId: string | null; saved: ChatMessage[]; onClose: () => void }) {
   const lastUser = useRef("");
-  const { messages, sendMessage, isLoading, error, stop, setMessages } = useChat({
-    connection,
-    initialMessages: saved.map((m) => ({ id: m.id, role: m.role, parts: [{ type: "text" as const, content: m.content }] })),
+  const { messages, sendMessage, isLoading, error, stop, setMessages, interrupts } = useChat({
+    ...chatOptions,
+    initialMessages: saved.map((m) => ({ id: m.id, role: m.role, parts: [{ type: "text" as const, content: m.content }] })) as ChatMessages,
     // Gửi kèm khách đang mở để trợ lý biết đang nói về ai.
     body: { leadId },
     onFinish: (message) => {
@@ -104,6 +107,11 @@ function Conversation({ leadId, saved, onClose }: { leadId: string | null; saved
             </div>
           </div>
         ))}
+        {interrupts.map((i) =>
+          i.kind === "tool-approval" ? (
+            <ApprovalCard key={i.id} toolName={i.toolName} args={i.originalArgs as Record<string, unknown>} onResolve={(approved) => i.resolveInterrupt(approved)} />
+          ) : null,
+        )}
         {error && <p role="alert" className="text-red-600">{error.message}</p>}
         <div ref={end} />
       </div>

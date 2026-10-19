@@ -82,3 +82,98 @@ export const TOOL_LABELS: Record<string, string> = {
   get_class: "Xem chi tiết lớp",
   search_docs: "Tra tài liệu",
 };
+
+// ── Công cụ GHI ──
+
+const sources = ["facebook", "zalo", "website", "gioi_thieu", "su_kien", "khac"] as const;
+const taskTypes = ["goi_lai", "gui_tai_lieu", "nhac_hoc_phi", "nhac_buoi_hoc", "danh_gia_cuoi_khoa"] as const;
+const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày dạng năm-tháng-ngày").describe("Ngày dạng năm-tháng-ngày, ví dụ 2026-10-26");
+
+/** Ghi chú nhẹ, không cần xác nhận: tự thêm vào hồ sơ và gắn nhãn "do AI ghi". */
+export const addNoteDef = toolDefinition({
+  name: "add_note",
+  description: "Thêm một ghi chú vào hồ sơ khách (tự động gắn nhãn do AI ghi). Dùng khi người dùng nhờ ghi lại nội dung cuộc trao đổi.",
+  inputSchema: z.object({ lead_id: leadId, content: z.string().min(1).max(2000).describe("Nội dung ghi chú") }),
+});
+
+/** Các công cụ dưới đây GHI dữ liệu quan trọng: needsApproval = true, người dùng phải bấm Duyệt thì mới chạy. */
+export const createTaskDef = toolDefinition({
+  name: "create_task",
+  description: "Tạo việc cần làm cho chính người đang hỏi (ví dụ gọi lại, nhắc học phí). Cần người dùng duyệt.",
+  inputSchema: z.object({
+    title: z.string().min(3).max(200).describe("Tiêu đề việc, ngắn gọn"),
+    due_date: date,
+    type: z.enum(taskTypes).describe("goi_lai, gui_tai_lieu, nhac_hoc_phi, nhac_buoi_hoc, danh_gia_cuoi_khoa"),
+    lead_id: leadId.optional().describe("Khách liên quan (nếu có)"),
+  }),
+  needsApproval: true,
+});
+
+export const updateLeadStageDef = toolDefinition({
+  name: "update_lead_stage",
+  description: "Đổi giai đoạn của một khách. Cần người dùng duyệt.",
+  inputSchema: z.object({ lead_id: leadId, stage: z.enum(STAGES) }),
+  needsApproval: true,
+});
+
+export const createLeadDef = toolDefinition({
+  name: "create_lead",
+  description: "Thêm một khách tiềm năng mới. Cần người dùng duyệt. Số điện thoại gồm 10 chữ số bắt đầu bằng 0.",
+  inputSchema: z.object({
+    full_name: z.string().min(2).max(100),
+    phone: z.string().describe("10 chữ số, bắt đầu bằng 0"),
+    source: z.enum(sources).default("khac"),
+    interested_course_id: z.uuid().optional().describe("Mã khóa học (uuid) lấy từ list_courses"),
+    free_time: z.string().max(200).optional(),
+  }),
+  needsApproval: true,
+});
+
+export const updateLeadDef = toolDefinition({
+  name: "update_lead",
+  description: "Sửa thông tin một khách (họ tên, số điện thoại, nguồn, khóa quan tâm, thời gian rảnh). Không đổi giai đoạn hay người phụ trách. Cần người dùng duyệt.",
+  inputSchema: z.object({
+    lead_id: leadId,
+    full_name: z.string().min(2).max(100).optional(),
+    phone: z.string().optional(),
+    source: z.enum(sources).optional(),
+    interested_course_id: z.uuid().optional(),
+    free_time: z.string().max(200).optional(),
+  }),
+  needsApproval: true,
+});
+
+export const enrollLeadDef = toolDefinition({
+  name: "enroll_lead",
+  description: "Xếp một khách đã đăng ký vào một lớp (học phí lấy theo khóa của lớp). Cần người dùng duyệt.",
+  inputSchema: z.object({
+    lead_id: leadId,
+    class_id: classId,
+    payment_plan: z.enum(["mot_lan", "tra_gop"]),
+    second_due_date: date.optional().describe("Hạn đóng đợt 2, chỉ khi trả góp"),
+  }),
+  needsApproval: true,
+});
+
+export const recordPaymentDef = toolDefinition({
+  name: "record_payment",
+  description: "Ghi nhận một lần học viên đóng học phí (số nguyên đồng). Cần người dùng duyệt.",
+  inputSchema: z.object({
+    enrollment_id: z.uuid().describe("Mã ghi danh (uuid) lấy từ get_class. KHÔNG tự đặt."),
+    amount_vnd: z.number().int().min(1).describe("Số tiền đóng, đơn vị đồng"),
+  }),
+  needsApproval: true,
+});
+
+/** Mọi công cụ cần duyệt: web dùng danh sách này để dựng thẻ xác nhận. */
+export const approvalTools = [createTaskDef, updateLeadStageDef, createLeadDef, updateLeadDef, enrollLeadDef, recordPaymentDef] as const;
+
+Object.assign(TOOL_LABELS, {
+  add_note: "Ghi chú vào hồ sơ",
+  create_task: "Tạo việc",
+  update_lead_stage: "Đổi giai đoạn khách",
+  create_lead: "Thêm khách",
+  update_lead: "Sửa thông tin khách",
+  enroll_lead: "Xếp khách vào lớp",
+  record_payment: "Ghi nhận học phí",
+});

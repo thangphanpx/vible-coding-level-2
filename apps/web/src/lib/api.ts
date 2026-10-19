@@ -44,12 +44,18 @@ export function queryString(params: Record<string, string | number | undefined>)
 }
 
 /** Tải một danh sách; đổi tham số hoặc gọi reload() thì tải lại. */
-export function useFetch<T>(path: string) {
+/** path = null nghĩa là chưa cần tải (ví dụ chưa có mã để tra). */
+export function useFetch<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   useEffect(() => {
+    if (path === null) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     const ctl = new AbortController();
     setLoading(true);
     api<T>("GET", path, undefined, ctl.signal)

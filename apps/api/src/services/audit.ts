@@ -15,7 +15,7 @@ export type AuditEntry = {
 export function writeAudit(db: DatabaseSync, actor: Actor, e: AuditEntry): void {
   db.prepare(
     "INSERT INTO audit_logs (user_id, action, entity_type, entity_id, detail, by_ai) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(actor.id, e.action, e.entityType, e.entityId, e.detail, e.byAi ? 1 : 0);
+  ).run(actor.id, e.action, e.entityType, e.entityId, e.detail, e.byAi || actor.viaAi ? 1 : 0);
 }
 
 /** Chạy trong một giao dịch: lỗi giữa chừng thì hoàn tác cả thay đổi lẫn dòng nhật ký. */

@@ -12,6 +12,7 @@ const app = createAiApp({
   apiUrl,
   // Chưa có khóa thì vẫn chạy, chỉ trả 503 khi có người hỏi.
   adapter: () => (apiKey ? openaiCompatibleText(model, { baseURL, apiKey }) : null),
+  serviceKey: process.env.AI_SERVICE_KEY || undefined,
   asksPerHour: Number(process.env.ASKS_PER_HOUR ?? 60),
   origins: (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000").split(",").map((s) => s.trim()),
 });

@@ -8,6 +8,8 @@ export type AppConfig = {
   cookieSecure: boolean;
   /** Số ngày một phiên đăng nhập còn hiệu lực. */
   sessionDays: number;
+  /** Khóa của dịch vụ AI: request mang đúng khóa này (và cookie hợp lệ) được ghi nhãn "do AI làm". KHÔNG cấp thêm quyền. null = tắt. */
+  aiServiceKey: string | null;
   /** Đồng hồ (kiểm thử thay bằng đồng hồ giả để thử hết hạn / khóa 15 phút). */
   now: () => Date;
 };
@@ -30,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: origins.length ? origins : DEFAULT_ORIGINS,
     cookieSecure: env.COOKIE_SECURE === "true",
     sessionDays: Number(env.SESSION_DAYS ?? 7) || 7,
+    aiServiceKey: (env.AI_SERVICE_KEY ?? "").length >= 16 ? env.AI_SERVICE_KEY! : null,
     now: () => new Date(),
   };
 }

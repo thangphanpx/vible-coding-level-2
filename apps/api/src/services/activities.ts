@@ -35,11 +35,12 @@ export function listActivities(db: DatabaseSync, actor: Actor, leadId: string): 
 
 /**
  * Ghi một hoạt động (ghi chú, cuộc gọi, tin nhắn) vào hồ sơ khách.
- * `byAi` = true khi thao tác do trợ lý AI làm (hiện nhãn "do AI ghi").
+ * Thao tác do trợ lý AI làm (actor.viaAi) được gắn nhãn "do AI ghi".
  */
-export function addActivity(db: DatabaseSync, actor: Actor, leadId: string, data: ActivityInput, opts: { byAi?: boolean } = {}): Activity {
+export function addActivity(db: DatabaseSync, actor: Actor, leadId: string, data: ActivityInput): Activity {
   const lead = requireVisibleLead(db, actor, leadId);
-  const byAi = opts.byAi ? 1 : 0;
+  // Thao tác đến từ dịch vụ AI (khóa dịch vụ đúng) thì gắn nhãn "do AI ghi".
+  const byAi = actor.viaAi ? 1 : 0;
   return inTransaction(db, () => {
     const { id } = db
       .prepare("INSERT INTO activities (lead_id, user_id, type, content, by_ai) VALUES (?, ?, ?, ?, ?) RETURNING id")
@@ -49,7 +50,6 @@ export function addActivity(db: DatabaseSync, actor: Actor, leadId: string, data
     writeAudit(db, actor, {
       action: "them_hoat_dong", entityType: "activities", entityId: id,
       detail: `${ACTIVITY_LABELS[data.type]} cho khách ${lead.full_name}`,
-      byAi: !!byAi,
     });
     return toActivity(db.prepare(`${SELECT} WHERE a.id = ?`).get(id) as ActivityRow);
   });

@@ -2,7 +2,7 @@ import type { SQLInputValue } from "node:sqlite";
 import { CARE_TASK_TYPES, type SessionUser } from "@ces/shared";
 
 /** Người thực hiện thao tác (lấy từ phiên đăng nhập, không bao giờ lấy từ nội dung request). */
-export type Actor = Pick<SessionUser, "id" | "role" | "fullName">;
+export type Actor = Pick<SessionUser, "id" | "role" | "fullName"> & { viaAi?: boolean };
 
 /** Một điều kiện SQL (đã có dấu ?) kèm giá trị tham số. */
 export type Cond = { sql: string; params: SQLInputValue[] };

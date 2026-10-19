@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fakeText } from "@tanstack/ai/testing";
-import { khoiTao } from "../../api/src/test-helpers.ts";
+import { KHOA_DICH_VU_THU, khoiTao } from "../../api/src/test-helpers.ts";
 import { createAiApp } from "./server.ts";
 
 /** Dịch vụ AI chạy thật với API thật (SQLite bộ nhớ) và mô hình GIẢ: không cần khóa, không cần mạng. */
@@ -13,6 +13,7 @@ function moi(opts: { asksPerHour?: number; coKhoa?: boolean } = {}) {
     apiUrl: "http://api",
     adapter: () => (opts.coKhoa === false ? null : fake),
     asksPerHour: opts.asksPerHour ?? 100,
+    serviceKey: KHOA_DICH_VU_THU,
     origins: ["http://localhost:3000"],
     fetch: async (u, i) => api.app.fetch(new Request(u, i)),
   });
