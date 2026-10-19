@@ -121,18 +121,21 @@ CREATE TABLE IF NOT EXISTS documents (
   updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
--- 10. Đoạn tài liệu (cắt nhỏ để tìm kiếm; cột embedding để trống cho đến khi làm phần tìm kiếm)
+-- 10. Đoạn tài liệu (cắt nhỏ để tìm kiếm)
 CREATE TABLE IF NOT EXISTS document_chunks (
   id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))) CHECK (length(id) = 36),
   document_id TEXT NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
   chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
   heading     TEXT,
   content     TEXT NOT NULL,
-  embedding   BLOB,
   created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   UNIQUE (document_id, chunk_index)
 );
+
+-- Chỉ mục tìm toàn văn (FTS5) cho các đoạn. Chữ được bỏ dấu (đ -> d) TRƯỚC khi đưa vào, nên gõ không dấu vẫn tìm ra.
+-- rowid của dòng chỉ mục = rowid của dòng document_chunks.
+CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(heading, content, tokenize = 'unicode61 remove_diacritics 2');
 
 -- 11. Nhật ký (ai làm gì, lúc nào, có phải do AI làm)
 CREATE TABLE IF NOT EXISTS audit_logs (

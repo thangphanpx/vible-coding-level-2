@@ -412,9 +412,9 @@ test("[V22] báo trùng số điện thoại không lộ tên khách ngoài ph�
   assert.ok(!JSON.stringify(sua.data).includes(cuaNguoiKhac.full_name));
 });
 
-test("[V23] đoán các route chưa có (người dùng, nhật ký, tài liệu...): 404, chưa đăng nhập thì 401", async () => {
+test("[V23] đoán các route chưa có (người dùng, nhật ký...): 404, chưa đăng nhập thì 401", async () => {
   const m = moi();
-  for (const path of ["/users", "/audit-logs", "/documents", "/admin", "/chat", "/leads/export", "/debug"]) {
+  for (const path of ["/users", "/audit-logs", "/admin", "/chat", "/leads/export", "/debug"]) {
     const r = await m.goi("GET", path, undefined, "tv1");
     assert.equal(r.status, 404, path);
     assert.equal((await m.goi("GET", path, undefined, null)).status, 401, `${path} chưa đăng nhập`);

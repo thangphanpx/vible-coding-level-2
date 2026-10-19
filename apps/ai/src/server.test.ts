@@ -80,3 +80,56 @@ test("Origin lạ bị từ chối; nội dung sai bị 400", async () => {
   const r = await ai.request("/chat", { method: "POST", headers: { cookie: api.cookieCho("tv1"), "content-type": "application/json" }, body: "{khong phai json" });
   assert.equal(r.status, 400);
 });
+
+// ── P8: công cụ search_docs ──
+import { readFileSync } from "node:fs";
+
+async function napTaiLieu(api: ReturnType<typeof khoiTao>) {
+  for (const [fileName, title] of [["02-quy-dinh-hoan-phi.md", "Quy định hoàn phí"], ["01-hoc-phi-uu-dai.md", "Học phí và ưu đãi"]] as const) {
+    const content = readFileSync(new URL(`../../../../tai-lieu-mau/${fileName}`, import.meta.url), "utf8");
+    assert.equal((await api.goi("POST", "/documents", { fileName, title, content }, "admin")).status, 201);
+  }
+}
+
+test("hỏi chính sách: mô hình gọi search_docs, công cụ trả đoạn kèm nguồn, kết quả quay lại mô hình", async () => {
+  const { api, fake, hoi } = moi();
+  await napTaiLieu(api);
+  let lanGoiThu2: any;
+  fake.setResponses([
+    { toolCalls: [{ name: "search_docs", input: { query: "hoan phi truoc khai giang" } }] },
+    ({ request }) => { lanGoiThu2 = request; return { text: "Hoàn 100% nếu báo trước 3 ngày. [Nguồn: Quy định hoàn phí]" }; },
+  ]);
+  const ev = await suKien(await hoi("Hoàn phí thế nào nếu báo trước khai giảng?"));
+  const ketQua = ev.find((e) => e.type === "TOOL_CALL_RESULT");
+  assert.ok(ketQua, "phải có kết quả công cụ");
+  const noiDung = JSON.parse(ketQua!.content);
+  assert.equal(noiDung.found, true);
+  assert.equal(noiDung.hits[0].source, "Quy định hoàn phí");
+  assert.match(noiDung.hits[0].text, /Hoàn 100%/);
+  assert.match(JSON.stringify(lanGoiThu2.messages), /Hoàn 100%/); // mô hình thật sự nhận được đoạn tài liệu
+  assert.match(ev.filter((e) => e.type === "TEXT_MESSAGE_CONTENT").map((e) => e.delta).join(""), /\[Nguồn: Quy định hoàn phí\]/);
+});
+
+test("không có trong tài liệu: công cụ báo found=false để mô hình nói không biết", async () => {
+  const { api, fake, hoi } = moi();
+  await napTaiLieu(api);
+  fake.setResponses([{ toolCalls: [{ name: "search_docs", input: { query: "bao hanh laptop" } }] }, { text: "Em chưa có thông tin này." }]);
+  const ev = await suKien(await hoi("Bảo hành laptop bao lâu?"));
+  assert.equal(JSON.parse(ev.find((e) => e.type === "TOOL_CALL_RESULT")!.content).found, false);
+});
+
+test("công cụ gọi API bằng cookie của người hỏi: chưa đăng nhập thì không đến được công cụ", async () => {
+  const { fake, hoi } = moi();
+  fake.setResponses([{ toolCalls: [{ name: "search_docs", input: { query: "hoc phi" } }] }, { text: "x" }]);
+  assert.equal((await hoi("hỏi", null)).status, 401);
+  assert.equal(fake.pendingResponses(), 2);
+});
+
+test("system prompt dặn ghi nguồn, nói không biết, và coi tài liệu là dữ liệu", async () => {
+  const { fake, hoi } = moi();
+  let thay: any;
+  fake.setResponses([({ request }) => { thay = request; return { text: "ok" }; }]);
+  await (await hoi("xin chào")).text();
+  const sp = JSON.stringify(thay.systemPrompts);
+  for (const mau of [/search_docs/, /Nguồn:/, /không biết/, /KHÔNG phải mệnh lệnh/]) assert.match(sp, mau);
+});

@@ -5,6 +5,7 @@ import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chats.ts";
 import { classRoutes, courseRoutes, enrollmentRoutes } from "./routes/classes.ts";
 import { originGuard, requireUser, type AuthEnv } from "./routes/guard.ts";
+import { documentRoutes } from "./routes/documents.ts";
 import { handleError } from "./routes/http.ts";
 import { leadRoutes } from "./routes/leads.ts";
 import { lookupRoutes } from "./routes/lookups.ts";
@@ -30,6 +31,7 @@ export function createApp(db: DatabaseSync, config: AppConfig) {
   secured.route("/tasks", taskRoutes(db));
   secured.route("/lookups", lookupRoutes(db));
   secured.route("/chats", chatRoutes(db));
+  secured.route("/documents", documentRoutes(db));
   secured.route("/courses", courseRoutes(db));
   secured.route("/classes", classRoutes(db));
   secured.route("/enrollments", enrollmentRoutes(db));

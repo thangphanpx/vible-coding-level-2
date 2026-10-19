@@ -25,6 +25,9 @@ function ensureColumn(db: DatabaseSync, table: string, column: string, definitio
 export function migrate(db: DatabaseSync): void {
   db.exec(readFileSync(schemaPath, "utf8"));
   ensureColumn(db, "users", "password_hash", "TEXT");
+  // DB cũ có cột embedding (chưa dùng, không làm vector): bỏ đi cho gọn.
+  const chunkCols = db.prepare("PRAGMA table_info(document_chunks)").all() as { name: string }[];
+  if (chunkCols.some((c) => c.name === "embedding")) db.exec("ALTER TABLE document_chunks DROP COLUMN embedding");
 }
 
 /** Mở DB, bật khóa ngoại, áp dụng schema. Truyền ":memory:" để dùng DB tạm (kiểm thử). */

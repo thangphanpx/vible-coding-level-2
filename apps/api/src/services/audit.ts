@@ -3,7 +3,7 @@ import type { Actor } from "./scope.ts";
 
 export type AuditEntry = {
   action: string;
-  entityType: "leads" | "tasks" | "enrollments" | "activities";
+  entityType: "leads" | "tasks" | "enrollments" | "activities" | "documents";
   entityId: string;
   /** Mô tả tiếng Việt. Không ghi số điện thoại, mật khẩu hay bí mật vào đây. */
   detail: string;

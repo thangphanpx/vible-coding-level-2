@@ -19,7 +19,7 @@ test("schema chạy lại nhiều lần không lỗi", () => {
   const db = openDatabase(":memory:");
   migrate(db);
   migrate(db);
-  const n = db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").get() as { n: number };
+  const n = db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'chunk_fts%'").get() as { n: number };
   assert.equal(n.n, BANG.length);
 });
 
