@@ -96,3 +96,8 @@ export function todayISO(): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+
+/** Tiền đồng: 12000000 -> "12.000.000đ". */
+export function formatVnd(n: number): string {
+  return `${n.toLocaleString("vi-VN")}đ`;
+}

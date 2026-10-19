@@ -3,17 +3,19 @@ import type { Actor } from "./scope.ts";
 
 export type AuditEntry = {
   action: string;
-  entityType: "leads" | "tasks";
+  entityType: "leads" | "tasks" | "enrollments" | "activities";
   entityId: string;
   /** Mô tả tiếng Việt. Không ghi số điện thoại, mật khẩu hay bí mật vào đây. */
   detail: string;
+  /** true khi thao tác do trợ lý AI làm thay người dùng. */
+  byAi?: boolean;
 };
 
 /** Ghi một dòng nhật ký: ai (từ phiên đăng nhập) làm gì, với đối tượng nào. Gọi trong cùng giao dịch với thay đổi dữ liệu. */
 export function writeAudit(db: DatabaseSync, actor: Actor, e: AuditEntry): void {
   db.prepare(
-    "INSERT INTO audit_logs (user_id, action, entity_type, entity_id, detail, by_ai) VALUES (?, ?, ?, ?, ?, 0)",
-  ).run(actor.id, e.action, e.entityType, e.entityId, e.detail);
+    "INSERT INTO audit_logs (user_id, action, entity_type, entity_id, detail, by_ai) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(actor.id, e.action, e.entityType, e.entityId, e.detail, e.byAi ? 1 : 0);
 }
 
 /** Chạy trong một giao dịch: lỗi giữa chừng thì hoàn tác cả thay đổi lẫn dòng nhật ký. */

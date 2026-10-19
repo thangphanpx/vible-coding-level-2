@@ -20,6 +20,7 @@ import { Route as NguoiDungRouteImport } from './routes/nguoi-dung'
 import { Route as NhatKyRouteImport } from './routes/nhat-ky'
 import { Route as TroLyAiRouteImport } from './routes/tro-ly-ai'
 import { Route as ViecCanLamRouteImport } from './routes/viec-can-lam'
+import { Route as KhachIdRouteImport } from './routes/khach.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,11 @@ const ViecCanLamRoute = ViecCanLamRouteImport.update({
   path: '/viec-can-lam',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KhachIdRoute = KhachIdRouteImport.update({
+  id: '/khach/$id',
+  path: '/khach/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/nhat-ky': typeof NhatKyRoute
   '/tro-ly-ai': typeof TroLyAiRoute
   '/viec-can-lam': typeof ViecCanLamRoute
+  '/khach/$id': typeof KhachIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/nhat-ky': typeof NhatKyRoute
   '/tro-ly-ai': typeof TroLyAiRoute
   '/viec-can-lam': typeof ViecCanLamRoute
+  '/khach/$id': typeof KhachIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/nhat-ky': typeof NhatKyRoute
   '/tro-ly-ai': typeof TroLyAiRoute
   '/viec-can-lam': typeof ViecCanLamRoute
+  '/khach/$id': typeof KhachIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/nhat-ky'
     | '/tro-ly-ai'
     | '/viec-can-lam'
+    | '/khach/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/nhat-ky'
     | '/tro-ly-ai'
     | '/viec-can-lam'
+    | '/khach/$id'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/nhat-ky'
     | '/tro-ly-ai'
     | '/viec-can-lam'
+    | '/khach/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   NhatKyRoute: typeof NhatKyRoute
   TroLyAiRoute: typeof TroLyAiRoute
   ViecCanLamRoute: typeof ViecCanLamRoute
+  KhachIdRoute: typeof KhachIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ViecCanLamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/khach/$id': {
+      id: '/khach/$id'
+      path: '/khach/$id'
+      fullPath: '/khach/$id'
+      preLoaderRoute: typeof KhachIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   NhatKyRoute: NhatKyRoute,
   TroLyAiRoute: TroLyAiRoute,
   ViecCanLamRoute: ViecCanLamRoute,
+  KhachIdRoute: KhachIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

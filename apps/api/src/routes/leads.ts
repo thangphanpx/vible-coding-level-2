@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { DatabaseSync } from "node:sqlite";
-import { dropEmpty, leadInputSchema, leadListQuerySchema, leadUpdateSchema } from "@ces/shared";
+import { activityInputSchema, dropEmpty, leadInputSchema, leadListQuerySchema, leadUpdateSchema } from "@ces/shared";
+import { addActivity, listActivities } from "../services/activities.ts";
 import { createLead, getLead, listLeads, updateLead } from "../services/leads.ts";
 import type { AuthEnv } from "./guard.ts";
 import { readJson } from "./http.ts";
@@ -13,6 +14,10 @@ export function leadRoutes(db: DatabaseSync) {
   r.post("/", async (c) => c.json(createLead(db, c.get("user"), leadInputSchema.parse(await readJson(c))), 201));
   r.patch("/:id", async (c) =>
     c.json(updateLead(db, c.get("user"), c.req.param("id"), leadUpdateSchema.parse(await readJson(c)))),
+  );
+  r.get("/:id/activities", (c) => c.json(listActivities(db, c.get("user"), c.req.param("id"))));
+  r.post("/:id/activities", async (c) =>
+    c.json(addActivity(db, c.get("user"), c.req.param("id"), activityInputSchema.parse(await readJson(c))), 201),
   );
   return r;
 }

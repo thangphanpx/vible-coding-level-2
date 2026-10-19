@@ -46,3 +46,8 @@ export const CARE_TASK_TYPES: readonly TaskType[] = ["nhac_hoc_phi", "nhac_buoi_
 export function allowedTaskTypes(role: Role, all: readonly TaskType[]): readonly TaskType[] {
   return role === "quan_ly_lop_hoc" ? all.filter((t) => CARE_TASK_TYPES.includes(t)) : all;
 }
+
+/** Xem danh sách lớp và ghi danh: Admin, Quản lý tuyển sinh, Quản lý lớp học. Tư vấn viên không. */
+export const canViewClasses = (role: Role) => role !== "tu_van_vien";
+/** Mở lớp, xếp khách vào lớp, ghi nhận đóng học phí: Admin và Quản lý lớp học. */
+export const canManageClasses = (role: Role) => role === "admin" || role === "quan_ly_lop_hoc";

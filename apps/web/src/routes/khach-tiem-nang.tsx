@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   SOURCE_LABELS, STAGES, STAGE_LABELS, canAssignLead, canCreateLead, canEditLead, dropEmpty, leadListQuerySchema,
   type Lead, type LeadListQuery, type Page, type Stage,
@@ -141,7 +141,7 @@ function LeadsPage() {
             )}
             {data?.items.map((l) => (
               <tr key={l.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-900">{l.fullName}</td>
+                <td className="px-4 py-3 font-medium text-slate-900"><Link to="/khach/$id" params={{ id: l.id }} className="underline decoration-slate-300 hover:decoration-slate-900">{l.fullName}</Link></td>
                 <td className="px-4 py-3">{l.phone}</td>
                 <td className="px-4 py-3">{SOURCE_LABELS[l.source]}</td>
                 <td className="px-4 py-3">{l.interestedCourseName ?? <span className="text-slate-400">Chưa rõ</span>}</td>
