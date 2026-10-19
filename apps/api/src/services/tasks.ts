@@ -45,6 +45,7 @@ export function listTasks(db: DatabaseSync, actor: Actor, query: TaskListQuery):
   if (query.type) where.add("t.type = ?", query.type);
   if (query.status) where.add("t.done = ?", query.status === "done" ? 1 : 0);
   if (query.assigneeId) where.add("t.assignee_id = ?", query.assigneeId);
+  if (query.leadId) where.add("t.lead_id = ?", query.leadId);
 
   const { total } = db.prepare(`SELECT count(*) AS total ${from.sql} ${where.sql}`).get(...from.params, ...where.params) as { total: number };
   const page = clampPage(query.page, total);

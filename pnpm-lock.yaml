@@ -10,6 +10,9 @@ importers:
 
   apps/ai:
     dependencies:
+      '@ces/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@ces/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -60,6 +63,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ces/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@ces/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -109,6 +115,19 @@ importers:
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
+
+  packages/contracts:
+    dependencies:
+      '@tanstack/ai':
+        specifier: ^0.69.0
+        version: 0.69.0(zod@4.6.7)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
   packages/shared:
     dependencies:

@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ces/contracts": "workspace:*",
     "@ces/shared": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/ai": "^0.69.0",

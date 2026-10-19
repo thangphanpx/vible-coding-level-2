@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { fetchServerSentEvents, useChat } from "@tanstack/ai-react";
+import { TOOL_LABELS } from "@ces/contracts";
 import type { ChatMessage } from "@ces/shared";
 import { api, useFetch } from "../lib/api";
 import { inputClass, primaryButton, secondaryButton } from "./ui";
 
 const connection = fetchServerSentEvents("/ai/chat");
 
-type Shown = { id: string; role: "user" | "assistant"; text: string };
+type Shown = { id: string; role: "user" | "assistant"; text: string; tools: string[] };
 
 /** Khung chat nổi ở góc mọi trang. Đang mở hồ sơ một khách thì chat gắn với khách đó (leadId). */
 export function ChatPanel({ leadId }: { leadId: string | null }) {
@@ -73,6 +74,8 @@ function Conversation({ leadId, saved, onClose }: { leadId: string | null; saved
     id: m.id,
     role: m.role === "user" ? "user" : "assistant",
     text: m.parts.map((p) => (p.type === "text" ? p.content : "")).join(""),
+    // Các công cụ AI đã dùng ở lượt này, hiện bằng tên tiếng Việt.
+    tools: m.parts.flatMap((p) => (p.type === "tool-call" ? [TOOL_LABELS[p.name] ?? p.name] : [])),
   }));
 
   function submit(e: FormEvent) {
@@ -95,6 +98,7 @@ function Conversation({ leadId, saved, onClose }: { leadId: string | null; saved
         {shown.length === 0 && <p className="text-slate-500">Xin chào! Bạn cần tra cứu hay nhờ tôi làm gì?</p>}
         {shown.map((m) => (
           <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
+            {m.tools.length > 0 && <p className="mb-1 text-xs text-slate-500">Đã dùng: {m.tools.join(", ")}</p>}
             <div className={`inline-block max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-left ${m.role === "user" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-800"}`}>
               {m.text || (isLoading ? "…" : "")}
             </div>

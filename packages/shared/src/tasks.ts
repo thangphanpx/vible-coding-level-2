@@ -41,6 +41,7 @@ export const taskListQuerySchema = z.object({
   type: z.enum(TASK_TYPES, { error: "Loại việc không hợp lệ" }).optional(),
   status: z.enum(TASK_STATUSES, { error: "Trạng thái không hợp lệ" }).optional(),
   assigneeId: uuidField("Người làm không hợp lệ").optional(),
+  leadId: uuidField("Khách không hợp lệ").optional(),
 });
 export type TaskListQuery = z.output<typeof taskListQuerySchema>;
 

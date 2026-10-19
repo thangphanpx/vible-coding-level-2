@@ -57,6 +57,12 @@ export function listLeads(db: DatabaseSync, actor: Actor, query: LeadListQuery):
   if (query.ownerId === "none") where.add("l.owner_id IS NULL");
   else if (query.ownerId) where.add("l.owner_id = ?", query.ownerId);
   if (query.courseId) where.add("l.interested_course_id = ?", query.courseId);
+  if (query.staleDays) {
+    where.add(
+      "l.stage IN ('moi', 'da_lien_he', 'hen_tu_van') AND (l.last_contacted_at IS NULL OR l.last_contacted_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?))",
+      `-${query.staleDays} days`,
+    );
+  }
 
   const { total } = db.prepare(`SELECT count(*) AS total FROM leads l ${where.sql}`).get(...where.params) as { total: number };
   const page = clampPage(query.page, total);

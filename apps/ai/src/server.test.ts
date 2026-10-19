@@ -133,3 +133,87 @@ test("system prompt dặn ghi nguồn, nói không biết, và coi tài liệu l
   const sp = JSON.stringify(thay.systemPrompts);
   for (const mau of [/search_docs/, /Nguồn:/, /không biết/, /KHÔNG phải mệnh lệnh/]) assert.match(sp, mau);
 });
+
+// ── P9: công cụ đọc ──
+/** Chạy một lượt: mô hình gọi đúng một công cụ rồi trả lời; trả về kết quả công cụ đã parse. */
+async function goiCongCu(m: ReturnType<typeof moi>, who: string, name: string, input: unknown) {
+  m.fake.setResponses([{ toolCalls: [{ name, input }] }, { text: "xong" }]);
+  const ev = await suKien(await m.hoi("hỏi thử", who));
+  const kq = ev.find((e) => e.type === "TOOL_CALL_RESULT");
+  assert.ok(kq, `không có kết quả cho ${name}`);
+  return { ev, ket: kq!.content as string };
+}
+const json = (s: string) => JSON.parse(s);
+
+test("search_leads: tư vấn viên chỉ tìm thấy khách của mình, quản lý tuyển sinh thấy tất cả", async () => {
+  const m = moi();
+  const tv = json((await goiCongCu(m, "tv1", "search_leads", { query: "hung" })).ket);
+  assert.equal(tv.tong, 1); // "Nguyễn Văn Hưng" là khách của tv1
+  assert.ok(tv.khach[0].lead_id.length === 36);
+  const khachNguoiKhac = json((await goiCongCu(moi(), "tv1", "search_leads", { query: "Mai Anh" })).ket);
+  assert.equal(khachNguoiKhac.tong, 0); // khách của tv2: tv1 không thấy
+  const ts = json((await goiCongCu(moi(), "ts", "search_leads", { query: "Mai Anh" })).ket);
+  assert.equal(ts.tong, 1);
+});
+
+test("search_leads lọc theo giai đoạn; get_lead trả hoạt động và việc đang mở", async () => {
+  const m = moi();
+  const dk = json((await goiCongCu(m, "ts", "search_leads", { stage: "dang_ky" })).ket);
+  assert.equal(dk.tong, 9);
+  const id = dk.khach[0].lead_id;
+  const chiTiet = json((await goiCongCu(moi(), "ts", "get_lead", { lead_id: id })).ket);
+  assert.equal(chiTiet.lead_id, id);
+  assert.ok(Array.isArray(chiTiet.hoat_dong_gan_day) && chiTiet.hoat_dong_gan_day.length > 0);
+  assert.ok(Array.isArray(chiTiet.viec_dang_mo));
+});
+
+test("get_lead: mã khách bịa sai định dạng bị chặn trước khi chạy; khách ngoài phạm vi báo không tìm thấy", async () => {
+  const bia = await goiCongCu(moi(), "tv1", "get_lead", { lead_id: "khach-1" });
+  assert.match(bia.ket, /lead_id|uuid|Invalid|không hợp lệ/i);
+  const idKhachTv2 = json((await goiCongCu(moi(), "ts", "search_leads", { query: "Mai Anh" })).ket).khach[0].lead_id;
+  const ngoai = await goiCongCu(moi(), "tv1", "get_lead", { lead_id: idKhachTv2 });
+  assert.match(ngoai.ket, /Không tìm thấy/);
+  assert.ok(!ngoai.ket.includes("Mai Anh"));
+});
+
+test("list_stale_leads, list_tasks, list_courses, list_classes, get_class chạy đúng theo vai trò", async () => {
+  const stale = json((await goiCongCu(moi(), "ts", "list_stale_leads", { days: 14 })).ket);
+  assert.ok(stale.tong > 0);
+  assert.ok(stale.khach.every((k: any) => ["moi", "da_lien_he", "hen_tu_van"].includes(k.giai_doan)));
+  const viecTv = json((await goiCongCu(moi(), "tv1", "list_tasks", { status: "open" })).ket);
+  const viecTs = json((await goiCongCu(moi(), "ts", "list_tasks", { status: "open" })).ket);
+  assert.ok(viecTv.tong < viecTs.tong);
+  const courses = json((await goiCongCu(moi(), "tv1", "list_courses", {})).ket);
+  assert.equal(courses.length, 3);
+  assert.ok(Number.isInteger(courses[0].hoc_phi_dong));
+  const lop = json((await goiCongCu(moi(), "ql1", "list_classes", {})).ket);
+  assert.equal(lop.length, 5);
+  const ct = json((await goiCongCu(moi(), "ql1", "get_class", { class_id: lop.find((c: any) => c.ten === "AI-2611").class_id })).ket);
+  assert.equal(ct.hoc_vien.length, 2);
+  assert.ok(ct.hoc_vien.every((h: any) => h.con_thieu >= 0));
+  // Tư vấn viên không được xem lớp: công cụ báo lỗi quyền, không trả dữ liệu
+  const tvLop = await goiCongCu(moi(), "tv1", "list_classes", {});
+  assert.match(tvLop.ket, /không được xem lớp học/);
+});
+
+test("khách đang mở: system prompt nêu tên khách và lead_id; khách ngoài phạm vi thì bị bỏ qua", async () => {
+  const m = moi();
+  const idHung = json((await goiCongCu(moi(), "tv1", "search_leads", { query: "hung" })).ket).khach[0].lead_id;
+  const idMaiAnh = json((await goiCongCu(moi(), "ts", "search_leads", { query: "Mai Anh" })).ket).khach[0].lead_id;
+  const hoiVoiKhach = async (who: string, leadId: string) => {
+    let thay: any;
+    m.fake.setResponses([({ request }) => { thay = request; return { text: "ok" }; }]);
+    const res = await m.ai.request("/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: m.api.cookieCho(who) },
+      body: JSON.stringify({ threadId: crypto.randomUUID(), runId: crypto.randomUUID(), tools: [], context: [], state: {}, forwardedProps: { leadId }, messages: [{ id: crypto.randomUUID(), role: "user", content: "tóm tắt khách này" }] }),
+    });
+    await res.text();
+    return JSON.stringify(thay.systemPrompts);
+  };
+  const co = await hoiVoiKhach("tv1", idHung);
+  assert.match(co, /Nguyễn Văn Hưng/);
+  assert.ok(co.includes(idHung));
+  const khong = await hoiVoiKhach("tv1", idMaiAnh);
+  assert.ok(!khong.includes("Mai Anh") && !khong.includes(idMaiAnh));
+});

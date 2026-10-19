@@ -9,6 +9,7 @@
     "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@ces/contracts": "workspace:*",
     "@ces/shared": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@tanstack/ai": "^0.69.0",

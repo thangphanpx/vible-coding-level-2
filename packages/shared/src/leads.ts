@@ -54,6 +54,8 @@ export const leadListQuerySchema = z.object({
   /** id người phụ trách, hoặc "none" = chưa giao ai */
   ownerId: z.union([uuidField("Người phụ trách không hợp lệ"), z.literal("none")]).optional(),
   courseId: uuidField("Khóa học không hợp lệ").optional(),
+  /** Khách đang theo (chưa đăng ký, chưa bỏ) mà CHƯA liên hệ quá số ngày này (hoặc chưa từng liên hệ). */
+  staleDays: z.coerce.number({ error: "Số ngày không hợp lệ" }).int("Số ngày không hợp lệ").min(1, "Số ngày không hợp lệ").max(365, "Số ngày không hợp lệ").optional(),
 });
 export type LeadListQuery = z.output<typeof leadListQuerySchema>;
 
