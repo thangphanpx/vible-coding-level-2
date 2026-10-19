@@ -19,3 +19,10 @@ Node.js 24, pnpm workspace. apps/web: TanStack Start + TypeScript + Tailwind. ap
 - `pnpm install` cài đặt; `pnpm dev` chạy cả web (cổng 3000) và api (cổng 8787); `pnpm typecheck` kiểm kiểu.
 - Web gọi API qua đường dẫn `/api/...` (Vite proxy sang api, bỏ tiền tố `/api`).
 - Api chạy TypeScript trực tiếp bằng Node 24: import nội bộ phải có đuôi `.ts`.
+- `pnpm test` chạy kiểm thử tự động (node --test, cả API); `pnpm db:seed` nạp dữ liệu mẫu (chạy lại không trùng); `pnpm db:reset` xóa file DB rồi nạp lại. File DB lấy từ `DB_PATH` trong `apps/api/.env` (sao chép từ `.env.example`).
+
+## Cấu trúc code
+- `packages/shared` (@ces/shared): lược đồ Zod, kiểu dữ liệu và nhãn tiếng Việt dùng chung cho web và API; mọi kiểm tra dữ liệu vào đặt ở đây, web và API cùng dùng.
+- `apps/api/src/services/`: logic nghiệp vụ và câu SQL; `apps/api/src/routes/`: chỉ đọc yêu cầu, kiểm Zod, gọi service; `apps/api/src/db/`: schema.sql, seed.ts, database.ts.
+- Lỗi API trả JSON tiếng Việt: `{ error, fields? }` (400 sai dữ liệu, 404 không thấy, 409 trùng).
+- Danh sách phân trang 20 dòng; bộ lọc nằm trên địa chỉ trang (search params).

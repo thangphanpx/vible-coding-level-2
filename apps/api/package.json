@@ -12,8 +12,10 @@
     "db:reset": "node --env-file-if-exists=.env src/db/seed.ts --reset"
   },
   "dependencies": {
+    "@ces/shared": "workspace:*",
     "@hono/node-server": "^2.1.5",
-    "hono": "^4.13.13"
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

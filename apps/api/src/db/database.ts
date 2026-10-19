@@ -2,6 +2,8 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import { unaccent } from "../services/sql.ts";
+
 const schemaPath = new URL("./schema.sql", import.meta.url);
 
 /** Đường dẫn file DB lấy từ biến môi trường DB_PATH (đặt trong apps/api/.env). */
@@ -23,6 +25,8 @@ export function openDatabase(path: string = getDbPath()): DatabaseSync {
   if (path !== ":memory:") mkdirSync(dirname(resolve(path)), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec("PRAGMA foreign_keys = ON;");
+  // Hàm tìm kiếm không dấu dùng trong câu SQL: unaccent(cột) LIKE ...
+  db.function("unaccent", { deterministic: true }, unaccent);
   if (path !== ":memory:") db.exec("PRAGMA journal_mode = WAL;");
   migrate(db);
   return db;
