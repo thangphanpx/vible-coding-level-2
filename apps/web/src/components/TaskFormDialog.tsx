@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { TASK_TYPES, TASK_TYPE_LABELS, fieldErrors, taskInputSchema, type Lookups, type Task } from "@ces/shared";
+import { TASK_TYPES, TASK_TYPE_LABELS, allowedTaskTypes, fieldErrors, taskInputSchema, type Lookups, type Task } from "@ces/shared";
 import { ApiRequestError, api } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import { Modal } from "./Modal";
 import { Field, inputClass, primaryButton, secondaryButton } from "./ui";
 
@@ -16,11 +17,14 @@ export function TaskFormDialog({
   onClose: () => void;
   onSaved: (saved: Task) => void;
 }) {
+  const { user } = useAuth();
+  const role = user!.role;
   const [values, setValues] = useState({
     title: task?.title ?? "",
     type: task?.type ?? "",
     dueDate: task?.dueDate ?? "",
-    assigneeId: task?.assigneeId ?? "",
+    // Tư vấn viên chỉ làm việc của chính mình (danh sách người làm chỉ có họ).
+    assigneeId: task?.assigneeId ?? (role === "tu_van_vien" ? (user?.id ?? "") : ""),
     leadId: task?.leadId ?? "",
     done: task?.done ?? false,
   });
@@ -68,7 +72,7 @@ export function TaskFormDialog({
           <Field label="Loại việc" htmlFor="task-type" required error={errors.type}>
             <select id="task-type" className={inputClass} value={values.type} onChange={set("type")}>
               <option value="">-- Chọn loại --</option>
-              {TASK_TYPES.map((t) => (
+              {allowedTaskTypes(role, TASK_TYPES).map((t) => (
                 <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>
               ))}
             </select>
@@ -85,7 +89,7 @@ export function TaskFormDialog({
             ))}
           </select>
         </Field>
-        <Field label="Khách liên quan" htmlFor="task-lead" error={errors.leadId}>
+        <Field label={role === "quan_ly_lop_hoc" ? "Khách liên quan (bắt buộc, khách đã đăng ký)" : "Khách liên quan"} htmlFor="task-lead" error={errors.leadId}>
           <select id="task-lead" className={inputClass} value={values.leadId} onChange={set("leadId")}>
             <option value="">-- Không gắn khách --</option>
             {lookups?.leads.map((l) => (

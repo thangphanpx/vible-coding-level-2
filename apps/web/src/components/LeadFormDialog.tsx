@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
 import {
-  SOURCES, SOURCE_LABELS, STAGES, STAGE_LABELS, fieldErrors, leadInputSchema,
+  SOURCES, SOURCE_LABELS, STAGES, STAGE_LABELS, canAssignLead, fieldErrors, leadInputSchema,
   type Lead, type Lookups,
 } from "@ces/shared";
 import { ApiRequestError, api } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import { Modal } from "./Modal";
 import { Field, inputClass, primaryButton, secondaryButton } from "./ui";
 
@@ -19,13 +20,16 @@ export function LeadFormDialog({
   onClose: () => void;
   onSaved: (saved: Lead) => void;
 }) {
+  const { user } = useAuth();
+  // Chỉ Admin và Quản lý tuyển sinh được chọn người phụ trách; Tư vấn viên thêm khách thì khách là của chính mình.
+  const canAssign = user ? canAssignLead(user.role) : false;
   const [values, setValues] = useState({
     fullName: lead?.fullName ?? "",
     phone: lead?.phone ?? "",
     source: lead?.source ?? "",
     interestedCourseId: lead?.interestedCourseId ?? "",
     stage: lead?.stage ?? "moi",
-    ownerId: lead?.ownerId ?? "",
+    ownerId: lead ? (lead.ownerId ?? "") : canAssign ? "" : (user?.id ?? ""),
     freeTime: lead?.freeTime ?? "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -99,14 +103,16 @@ export function LeadFormDialog({
             </select>
           </Field>
         </div>
-        <Field label="Người phụ trách" htmlFor="lead-owner" error={errors.ownerId}>
-          <select id="lead-owner" className={inputClass} value={values.ownerId} onChange={set("ownerId")}>
-            <option value="">-- Chưa giao --</option>
-            {lookups?.users.map((u) => (
-              <option key={u.id} value={u.id}>{u.fullName}</option>
-            ))}
-          </select>
-        </Field>
+        {canAssign && (
+          <Field label="Người phụ trách" htmlFor="lead-owner" error={errors.ownerId}>
+            <select id="lead-owner" className={inputClass} value={values.ownerId} onChange={set("ownerId")}>
+              <option value="">-- Chưa giao --</option>
+              {lookups?.users.map((u) => (
+                <option key={u.id} value={u.id}>{u.fullName}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Thời gian rảnh" htmlFor="lead-free" error={errors.freeTime}>
           <input id="lead-free" className={inputClass} value={values.freeTime} onChange={set("freeTime")} placeholder="Ví dụ: tối thứ 2, 4, 6" />
         </Field>

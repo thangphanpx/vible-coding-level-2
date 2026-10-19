@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  SOURCE_LABELS, STAGES, STAGE_LABELS, dropEmpty, leadListQuerySchema,
+  SOURCE_LABELS, STAGES, STAGE_LABELS, canAssignLead, canCreateLead, canEditLead, dropEmpty, leadListQuerySchema,
   type Lead, type LeadListQuery, type Page, type Stage,
 } from "@ces/shared";
 import { LeadFormDialog } from "../components/LeadFormDialog";
 import { Badge, Pagination, filterClass, formatDate, inputClass, primaryButton, secondaryButton } from "../components/ui";
 import { queryString, useFetch, useLookups } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 export const Route = createFileRoute("/khach-tiem-nang")({
   // Bộ lọc nằm trên địa chỉ trang; tham số sai thì quay về mặc định.
@@ -28,6 +29,8 @@ const stageColor: Record<Stage, "slate" | "blue" | "amber" | "green" | "red"> = 
 function LeadsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const { user } = useAuth();
+  const role = user!.role;
   const lookups = useLookups();
   const list = useFetch<Page<Lead>>(
     `/leads${queryString({ page: search.page, q: search.q, stage: search.stage, ownerId: search.ownerId, courseId: search.courseId })}`,
@@ -57,9 +60,11 @@ function LeadsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Khách tiềm năng</h1>
-        <button type="button" className={primaryButton} onClick={() => setEditing("new")}>
-          Thêm khách
-        </button>
+        {canCreateLead(role) && (
+          <button type="button" className={primaryButton} onClick={() => setEditing("new")}>
+            Thêm khách
+          </button>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -76,13 +81,15 @@ function LeadsPage() {
             <option key={s} value={s}>{STAGE_LABELS[s]}</option>
           ))}
         </select>
-        <select className={filterClass} aria-label="Lọc theo người phụ trách" value={search.ownerId ?? ""} onChange={(e) => go({ ownerId: e.target.value || undefined, page: 1 })}>
-          <option value="">Mọi người phụ trách</option>
-          <option value="none">Chưa giao</option>
-          {lookups.data?.users.map((u) => (
-            <option key={u.id} value={u.id}>{u.fullName}</option>
-          ))}
-        </select>
+        {canAssignLead(role) && (
+          <select className={filterClass} aria-label="Lọc theo người phụ trách" value={search.ownerId ?? ""} onChange={(e) => go({ ownerId: e.target.value || undefined, page: 1 })}>
+            <option value="">Mọi người phụ trách</option>
+            <option value="none">Chưa giao</option>
+            {lookups.data?.users.map((u) => (
+              <option key={u.id} value={u.id}>{u.fullName}</option>
+            ))}
+          </select>
+        )}
         <select className={filterClass} aria-label="Lọc theo khóa quan tâm" value={search.courseId ?? ""} onChange={(e) => go({ courseId: e.target.value || undefined, page: 1 })}>
           <option value="">Mọi khóa học</option>
           {lookups.data?.courses.map((c) => (
@@ -142,9 +149,11 @@ function LeadsPage() {
                 <td className="px-4 py-3">{l.ownerName ?? <span className="text-slate-400">Chưa giao</span>}</td>
                 <td className="px-4 py-3">{l.lastContactedAt ? formatDate(l.lastContactedAt) : <span className="text-slate-400">Chưa liên hệ</span>}</td>
                 <td className="px-4 py-3 text-right">
-                  <button type="button" className="text-sm font-medium text-slate-700 underline hover:text-slate-900" onClick={() => setEditing(l)}>
-                    Sửa
-                  </button>
+                  {canEditLead(role) && (
+                    <button type="button" className="text-sm font-medium text-slate-700 underline hover:text-slate-900" onClick={() => setEditing(l)}>
+                      Sửa
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

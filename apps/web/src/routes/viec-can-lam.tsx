@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  TASK_STATUSES, TASK_STATUS_LABELS, TASK_TYPES, TASK_TYPE_LABELS, dropEmpty, taskListQuerySchema,
+  TASK_STATUSES, TASK_STATUS_LABELS, TASK_TYPES, TASK_TYPE_LABELS, allowedTaskTypes, canSeeAllTasks, dropEmpty, taskListQuerySchema,
   type Page, type Task, type TaskListQuery, type TaskStatus, type TaskType,
 } from "@ces/shared";
 import { TaskFormDialog } from "../components/TaskFormDialog";
 import { Badge, Pagination, filterClass, formatDate, inputClass, primaryButton, secondaryButton, todayISO } from "../components/ui";
 import { api, queryString, useFetch, useLookups } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 export const Route = createFileRoute("/viec-can-lam")({
   validateSearch: (raw: Record<string, unknown>): TaskListQuery => {
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/viec-can-lam")({
 function TasksPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const { user } = useAuth();
+  const role = user!.role;
   const lookups = useLookups();
   const list = useFetch<Page<Task>>(
     `/tasks${queryString({ page: search.page, q: search.q, type: search.type, status: search.status, assigneeId: search.assigneeId })}`,
@@ -73,7 +76,7 @@ function TasksPage() {
         />
         <select className={filterClass} aria-label="Lọc theo loại việc" value={search.type ?? ""} onChange={(e) => go({ type: (e.target.value || undefined) as TaskType | undefined, page: 1 })}>
           <option value="">Mọi loại việc</option>
-          {TASK_TYPES.map((t) => (
+          {allowedTaskTypes(role, TASK_TYPES).map((t) => (
             <option key={t} value={t}>{TASK_TYPE_LABELS[t]}</option>
           ))}
         </select>
@@ -83,12 +86,14 @@ function TasksPage() {
             <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>
           ))}
         </select>
-        <select className={filterClass} aria-label="Lọc theo người làm" value={search.assigneeId ?? ""} onChange={(e) => go({ assigneeId: e.target.value || undefined, page: 1 })}>
-          <option value="">Mọi người làm</option>
-          {lookups.data?.users.map((u) => (
-            <option key={u.id} value={u.id}>{u.fullName}</option>
-          ))}
-        </select>
+        {canSeeAllTasks(role) && (
+          <select className={filterClass} aria-label="Lọc theo người làm" value={search.assigneeId ?? ""} onChange={(e) => go({ assigneeId: e.target.value || undefined, page: 1 })}>
+            <option value="">Mọi người làm</option>
+            {lookups.data?.users.map((u) => (
+              <option key={u.id} value={u.id}>{u.fullName}</option>
+            ))}
+          </select>
+        )}
         {(search.q || search.type || search.status || search.assigneeId) && (
           <button
             type="button"
@@ -145,7 +150,7 @@ function TasksPage() {
                     {formatDate(t.dueDate)} {overdue && <Badge color="red">Quá hạn</Badge>}
                   </td>
                   <td className="px-4 py-3">{t.assigneeName ?? <span className="text-slate-400">Chưa giao</span>}</td>
-                  <td className="px-4 py-3">{t.leadName ?? <span className="text-slate-400">Không gắn khách</span>}</td>
+                  <td className="px-4 py-3">{t.leadName ?? <span className="text-slate-400">{t.leadId ? "Khách ngoài quyền xem" : "Không gắn khách"}</span>}</td>
                   <td className="px-4 py-3 text-right">
                     <button type="button" className="text-sm font-medium text-slate-700 underline hover:text-slate-900" onClick={() => setEditing(t)}>
                       Sửa

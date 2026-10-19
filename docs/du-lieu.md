@@ -17,7 +17,7 @@ Quy ước chung: id là uuid; tiền là số nguyên theo đồng (cột `*_vn
 | enrollments | Ghi danh: khách nào vào lớp nào, một lần hay trả góp, tổng học phí, đã đóng, hạn đợt 2 | Nối leads với classes (mỗi khách một lần cho mỗi lớp) |
 | documents | Tài liệu trong kho tri thức: tiêu đề, tên file, người nạp | Do một user nạp; có nhiều document_chunks |
 | document_chunks | Từng đoạn của tài liệu (để tra cứu), có chỗ để vector tìm kiếm | Thuộc một document (xóa tài liệu thì xóa luôn đoạn) |
-| audit_logs | Nhật ký: ai làm gì, với đối tượng nào, lúc nào, có phải AI làm | Trỏ tới users; trỏ lỏng tới đối tượng bị tác động (entity_type + entity_id) |
+| audit_logs | Nhật ký: ai làm gì, với đối tượng nào, lúc nào, có phải AI làm. Từ P6 mọi thêm/sửa khách và việc đều ghi vào đây (tao_khach, sua_khach, doi_giai_doan, giao_khach, tao_viec, sua_viec, hoan_thanh_viec, mo_lai_viec) | Trỏ tới users; trỏ lỏng tới đối tượng bị tác động (entity_type + entity_id) |
 | sessions | Phiên đăng nhập: người dùng, HMAC của mã phiên (không lưu mã thô), hạn dùng | Thuộc một user (xóa user thì xóa phiên) |
 | login_attempts | Mỗi lần đăng nhập sai (email, thời điểm) để khóa 10 lần / 15 phút | Không nối bảng nào (khóa theo email, kể cả email không tồn tại) |
 | chat_messages | Lịch sử trò chuyện với trợ lý AI theo người dùng | Thuộc một user; có thể gắn với lead đang mở |

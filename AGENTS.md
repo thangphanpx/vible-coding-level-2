@@ -33,3 +33,9 @@ Node.js 24, pnpm workspace. apps/web: TanStack Start + TypeScript + Tailwind. ap
 - Bí mật chỉ nằm trong `apps/api/.env` (không commit): `SESSION_SECRET` (>= 32 ký tự, thiếu thì API không chạy), `ALLOWED_ORIGINS`, `COOKIE_SECURE`, `SEED_PASSWORD` (mật khẩu chung của tài khoản mẫu). `.env.example` chỉ có giá trị giữ chỗ.
 - `pnpm db:seed` cần `SEED_PASSWORD`. Cột/bảng mới cho DB cũ: `migrate()` tự thêm cột thiếu (xem `ensureColumn` trong `db/database.ts`).
 - Kiểm thử: dùng `khoiTao()` trong `apps/api/src/test-helpers.ts` (DB tạm, đồng hồ giả, `goi(method, path, body, vaiTro)`).
+
+## Phân quyền (P6)
+- Bảng vai trò × quyền: quyền thao tác ở `packages/shared/src/permissions.ts` (web và API cùng đọc); phạm vi dữ liệu (khách nào, việc nào được thấy) ở `apps/api/src/services/scope.ts`. Mọi service nhận `actor` (người đang đăng nhập, lấy từ phiên, không bao giờ từ nội dung request) và tự kiểm quyền.
+- Mã lỗi: 401 chưa đăng nhập; 403 vai trò không được làm việc đó; 404 bản ghi ngoài phạm vi (kiểm phạm vi TRƯỚC, rồi mới kiểm quyền thao tác). Báo lỗi tham chiếu, trùng SĐT không được lộ tên/bản ghi ngoài phạm vi.
+- Mọi thêm/sửa khách và việc ghi `audit_logs` (`services/audit.ts`, cùng giao dịch với thay đổi dữ liệu). Hàm service mới phải làm tương tự và có kiểm thử mỗi vai trò × thao tác.
+- Cách tự thử vượt quyền: `docs/thu-vuot-quyen.md`; kiểm thử ở `apps/api/src/routes/phan-quyen.test.ts`.
